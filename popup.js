@@ -18,11 +18,15 @@ function clickHandler(wholePage) {
     if (!wholePage) {
       url = getDomain(url);
     }
+    var fullPage=$("fullPage").checked;
     var text = $("comment").value;
     var comments=JSON.parse(localStorage[url]?localStorage[url]:"[]");
-    comments.push({"text":text});
+    comments.push({"text":text,"fullPage":fullPage});
     localStorage[url]=JSON.stringify(comments);
     $("content").innerHTML=url;
+    $("fullPage").checked=false;
+    $("comment").value="";
+    refresh();
   });
 }
 
@@ -33,25 +37,61 @@ function pageClickHandler() {
 function domainClickHandler() {
   clickHandler(false);
 }
-console.log(new Date());
-window.onload=function() {
+
+function getCommentsFor(token) {
+    return JSON.parse(localStorage[token] ? localStorage[token] : "[]");
+}
+
+function refresh() {
+    function convertToHTML(comments, scope) {
+        var content = ""
+        for (var i = 0; i < comments.length; i++) {
+            var idx = comments.length - i - 1;
+            content += comments[idx].text + "<button id=\""+scope+"_" + idx + "\">X</button>" + "<hr />";
+        }
+        return content;
+    }
+
+    function remove(idxToRemove,commentsArray) {
+        var comments = [];
+        for (var j = 0; j < commentsArray.length; j++) {
+            if (j != idxToRemove) {
+                comments.push(commentsArray[j]);
+            }
+        }
+        return comments;
+    }
+
     chrome.tabs.query( {active: true}, function(tab) {
-      var url = tab[0].url;
-      var domain = getDomain(url);
-      var domainComments=JSON.parse(localStorage[domain]?localStorage[domain]:"[]");
-      var pageComments=JSON.parse(localStorage[url]?localStorage[url]:"[]");
-      var content = "";
-      for (var i=0; i<domainComments.length; i++) {
-        content+=domainComments[domainComments.length-i-1].text+"<hr />";
-      }
-      for (var i=0; i<pageComments.length; i++) {
-        content+=pageComments[pageComments.length-i-1].text+"<hr />";
-      }
-      content=content.replace("\n","<br />");
-      $("content").innerHTML=content;
-      $("addToPage").onclick=pageClickHandler;
-      $("addToDomain").onclick=domainClickHandler;
-      // console.log("--->"+new Date());
-    });
+    var url = tab[0].url;
+    var domain = getDomain(url);
+    var domainComments=getCommentsFor(domain);
+    var pageComments=getCommentsFor(url);
+    var content = convertToHTML(domainComments, "domain")+convertToHTML(pageComments,"page");
+    content=content.replace("\n","<br />");
+    $("content").innerHTML=content;
+    $("addToPage").onclick=pageClickHandler;
+    $("addToDomain").onclick=domainClickHandler;
+    var buttons = document.getElementsByTagName("button");
+    for (var i=0; i<buttons.length; i++) {
+      var button=buttons[i];
+      if (!button.onclick) {
+        button.onclick=function(element) {
+          var id=element.srcElement.id;
+          var elems=id.split("_");
+          if (elems[0]=="domain") {
+              localStorage[domain]=JSON.stringify(remove(elems[1]*1,domainComments));
+              refresh();
+          } else if (elems[0]=="page") {
+              localStorage[url]=JSON.stringify(remove(elems[1]*1,pageComments));
+              refresh();
+          }
+          }
+        }
+    }
+  });
+}
+window.onload=function() {
+  refresh();
 };
-console.log(new Date());
+

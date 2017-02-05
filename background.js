@@ -1,3 +1,4 @@
+var state = {"domainComments":[],"pageComments":[]};
 
 function getDomain(url) {
   if (url.indexOf("//")!=-1) {
@@ -9,12 +10,23 @@ function getDomain(url) {
   return url;
 }
 
+
+chrome.runtime.onMessage.addListener(
+    function (request, sender, sendResponse) {
+      if (request.cmd=="getComments") {
+        sendResponse(state);
+      }
+    }
+  );
+
 function updateBadge(tabId) {
   chrome.tabs.get(tabId,function(tab) {
     var url = tab.url;
     var domain = getDomain(url);
     var domainComments=JSON.parse(localStorage[domain]?localStorage[domain]:"[]");
     var pageComments=JSON.parse(localStorage[url]?localStorage[url]:"[]");
+    state.domainComments=domainComments;
+    state.pageComments=pageComments;
     var count = domainComments.length+pageComments.length;
     var text=count>0?""+count:"";
     chrome.browserAction.setBadgeText({"text":text});

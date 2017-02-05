@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Note2Page",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "let you write 'notes' to yourself and assign those to web pages",
   "background": {"page":"background.html"},
   "browser_action": {
@@ -10,5 +10,11 @@
   },
   "permissions": [
     "tabs", "http://*/*", "https://*/*", "storage"
-  ]
+  ],
+  "content_scripts": [
+  {
+    "matches" : ["http://*/*", "https://*/*"],
+    "js": ["content_script.js"]
+  }
+]
 }
